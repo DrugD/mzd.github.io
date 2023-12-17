@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>足迹年鉴地图可视化系统</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <style>
+        body,
+        html,
+        #container {
+
+            width: 100%;
+            height: 98%;
+            margin: 0;
+            font-family: "微软雅黑";
+            background-color: rgb(237, 243, 243);
+            background-image: '';
+        }
+
+        input::placeholder {
+            font-size: medium;
+            color: rgb(207, 155, 155)
+        }
+
+        input:focus {
+
+            border: 2px solid rgb(189, 2, 4);
+            border-radius: 3px;
+
+            /* 修改为你想要的颜色和样式 */
+            outline: none;
+            /* 移除默认的轮廓效果 */
+
+        }
+
+
+        /* 加载动画的样式 */
+        @keyframes pulse {
+            0% {
+                transform: scale(0.8);
+                opacity: 0.6;
+            }
+
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(0.8);
+                opacity: 0.6;
+            }
+        }
+
+        /* 加载指示器的样式 */
+        #loading-indicator {
+            position: fixed;
+            top: 48%;
+            left: 48%;
+
+
+            display: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: rgb(158, 0, 0);
+            /* 中国红 */
+            animation: pulse 1.5s ease-in-out infinite;
+            /* 使用pulse动画，1.5秒一次，无限循环 */
+            margin: 20px auto;
+            /* 居中显示 */
+        }
+
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 加载指示器的样式 */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(226, 27, 27, 0);
+            /* 半透明白色背景 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .map {
+            z-index: 1;
+            border-width: 1px;
+            border-style: solid;
+            border-color: hwb(0 2% 32%);
+
+
+
+        }
+
+        .item-box {
+            background: rgba(190, 2, 2, 0.932);
+            border-width: 1px;
+            border-style: none;
+            border-color: hwb(0 0% 2%);
+            width: 25vw;
+            height: 66vh;
+            position: absolute;
+            margin: -99vh 0px 0px 1vh;
+            overflow: auto;
+            text-align: justify;
+            color: #d13520;
+        }
+
+
+
+        .a-class {
+            color: #ff4f4fc5;
+            margin: 0px 10px 0px 10px;
+        }
+
+        .h1-class {
+            color: #b41c1c;
+            font-size: 25px;
+            margin: 20px 0px 0px 8px;
+        }
+
+        .p-class {
+            display: flex;
+            justify-content: left;
+            /* 水平均匀分布 */
+            flex-direction: column;
+            font-size: 14px;
+            line-height: 24px;
+            align-items: flex-start;
+            margin: 3px 5px 3px 5px;
+            padding: 3%;
+            background-color: rgba(131, 0, 0, 0.5);
+            border-radius: 5px;
+
+        }
+
+        div.BMap_bubble_content {
+            top: auto !important;
+            width: auto !important;
+        }
+
+        .title {
+            height: 15%;
+            color: #ffffff00;
+            display: flex;
+            justify-content: space-evenly;
+            /* 水平均匀分布 */
+            flex-direction: row;
+            background-color: rgba(255, 255, 255, 0);
+
+            text-align: center;
+            justify-content: center;
+            font-size: 35px;
+        }
+
+        .left {
+            height: 98%;
+            width: 37%;
+            margin: 0 1% 0 1%;
+            color: #ffffff;
+            display: flex;
+            justify-content: space-evenly;
+            /* 水平均匀分布 */
+            flex-direction: column;
+            /* background-color: #810000;
+            opacity: 0.25; */
+
+            overflow: auto;
+            text-align: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .right {
+            height: 98%;
+            width: 37%;
+            margin: 0 1% 0 1%;
+            color: rgba(255, 255, 255, 1);
+
+            display: flex;
+            justify-content: space-evenly;
+            /* 水平均匀分布 */
+            flex-direction: column;
+            background-color: rgba(112, 0, 0, 0.5);
+            overflow: auto;
+            text-align: left;
+            justify-content: center;
+            font-size: 35px;
+            border-width: 1px;
+            border-style: solid;
+            border-color: rgb(153, 26, 0);
+        }
+
+
+
+
+
+
+        .mainBody {
+            width: 100%;
+            height: 85%;
+            display: flex;
+        }
+
+        .img {
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+            display: inline-block;
+            border: none;
+        }
+
+        .title_img {
+            object-fit: scale-down;
+            width: 40%;
+            height: 100%;
+            display: inline-block;
+            border: none;
+        }
+
+        .shadow {
+
+            /* box-shadow: darkgrey 10px 10px 30px 5px; */
+        }
+
+        .father {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            /* background: #bd0204; */
+
+        }
+
+        .search_left_up {
+            border-width: 1px;
+            border-style: solid;
+            border-color: rgb(153, 26, 0);
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            height: 10%;
+            width: 99%;
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(112, 0, 0, 0.5);
+            margin: auto;
+        }
+
+        .search_left_down {
+            border-width: 1px;
+            border-style: solid;
+            border-color: rgb(153, 26, 0);
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            height: 88%;
+            width: 99%;
+            display: flex;
+            flex-direction: column;
+            background-color: rgba(112, 0, 0, 0.5);
+            margin: auto;
+            color: white;
+            overflow-y: auto;
+        }
+
+
+
+
+        /* 修改滚动条的样式 */
+        .search_left_down::-webkit-scrollbar {
+            width: 10px;
+            /* 设置滚动条的宽度 */
+
+            height: 50%;
+        }
+
+        .search_left_down::-webkit-scrollbar-thumb {
+            background-color: rgb(170, 0, 0);
+            /* 设置滚动条滑块的颜色 */
+            border-radius: 15px;
+            /* 设置滚动条滑块的圆角 */
+
+
+        }
+
+        .search_left_down::-webkit-scrollbar-track {
+            background-color: rgb(103, 0, 0);
+            /* 设置滚动条轨道的颜色 */
+
+        }
+
+        /* 滚动条两端按钮 */
+        .search_left_down::-webkit-scrollbar-button {}
+
+        .search_label_left {
+            font-size: 20px;
+            font-family: 楷体;
+            color: rgb(255, 255, 255);
+            height: 30%;
+            width: 94%;
+            justify-content: center;
+            align-items: center;
+            display: flex;
+            margin-left: 3%;
+            margin-right: 3%;
+            margin-top: 3%;
+            border-radius: 5px;
+        }
+
+        .search_label {
+            font-size: 20px;
+            font-family: 楷体;
+            color: rgb(255, 255, 255);
+            height: 5%;
+            width: 94%;
+            justify-content: center;
+            align-items: center;
+            display: flex;
+            margin-left: 3%;
+            margin-right: 3%;
+            margin-top: 3%;
+            border-radius: 5px;
+        }
+
+        .text_click_xuanku {
+            color: rgb(255, 255, 255);
+            background: rgb(115, 0, 0);
+            border: 1px solid rgb(208, 9, 12);
+            border-radius: 5px;
+            width: 20%;
+            height: 80%;
+            justify-content: center;
+            align-items: center;
+            display: flex;
+        }
+
+
+        .text_click_xuanku:active {
+            color: #ff0000;
+            background: rgb(255, 255, 255);
+        }
+
+
+        .search_result {
+            background: rgba(228, 212, 212, 0);
+            font-size: 18px;
+            font-family: 楷体;
+            color: rgb(105, 14, 14);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: start;
+            overflow: auto;
+        }
+
+
+        /* 滚动条整体 */
+        .search_result::-webkit-scrollbar {
+            height: 20px;
+            width: 10px;
+        }
+
+        /* 两个滚动条交接处 -- x轴和y轴 */
+        .search_result::-webkit-scrollbar-corner {
+            background-color: transparent;
+        }
+
+        /* 滚动条滑块 */
+        .search_result::-webkit-scrollbar-thumb {
+            border-radius: 10px;
+            -webkit-box-shadow: inset 0 0 5px rgba(97, 97, 97, 0.2);
+            background: #a8c1cf4b;
+        }
+
+        /* 滚动条轨道 */
+        .search_result::-webkit-scrollbar-track {
+            -webkit-box-shadow: inset 0 0 5px rgba(119, 119, 119, 0.2);
+            border-radius: 10px;
+            background: #ededed;
+        }
+
+        .detail {
+            display: flex;
+            position: relative;
+            font-size: 20px;
+            height: 95%;
+            overflow: auto;
+            margin: 0px 0px 3px 3px;
+        }
+
+
+
+        /* 滚动条整体 */
+        .detail::-webkit-scrollbar {
+            height: 20px;
+            width: 10px;
+        }
+
+        /* 两个滚动条交接处 -- x轴和y轴 */
+        .detail::-webkit-scrollbar-corner {
+            background-color: transparent;
+        }
+
+        /* 滚动条滑块 */
+        .detail::-webkit-scrollbar-thumb {
+            border-radius: 15px;
+            background-color: rgb(170, 0, 0);
+        }
+
+        /* 滚动条轨道 */
+        .detail::-webkit-scrollbar-track {
+
+            border-radius: 10px;
+            background-color: rgb(103, 0, 0);
+        }
+
+
+
+        .child_center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+        }
+
+
+        .search_detail_type {
+            font-size: 15px;
+            color: #ffffff;
+            width: 15%;
+            justify-content: right;
+            align-items: center;
+            display: flex;
+            padding-right: 3%;
+        }
+
+        .search_detail_address {
+            font-size: 15px;
+            color: #ffffff;
+            width: 45%;
+            justify-content: left;
+            align-items: center;
+            display: flex;
+        }
+
+        .search_detail_title {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            width: 100%;
+        }
+
+        .search_detail_date {
+            font-size: 15px;
+            color: #ffffff;
+            width: 40%;
+        }
+
+
+        .detail_date {
+            font-size: 15px;
+            color: #ffffff;
+            width: 70%;
+        }
+
+        .detail_type {
+            font-size: 15px;
+            color: #ffffff;
+            width: 30%;
+            justify-content: right;
+            align-items: center;
+            display: flex;
+            padding-right: 3%;
+        }
+
+        .detail_address {
+            font-size: 15px;
+            color: #ffffff;
+            width: 45%;
+            justify-content: left;
+            align-items: center;
+            display: flex;
+        }
+
+        .detail_title {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            width: 100%;
+        }
+
+        .detail_class {
+            font-size: 15px;
+            color: #ff000d;
+
+
+        }
+
+        .detail_text {
+            font-size: 15px;
+            color: #ffffff;
+        }
+
+        .detail_right {
+            display: flex;
+            position: relative;
+            flex-direction: column;
+            padding: 0 1px 1px 0;
+            width: 100%;
+
+        }
+
+        .detail_left {
+            display: flex;
+            position: relative;
+            flex-direction: column;
+            padding: 0 1px 1px 0;
+            justify-content: start;
+
+        }
+
+        .fillter {
+            display: flex;
+            flex-direction: column;
+            width: 97%;
+            height: auto;
+            padding-left: 3%;
+            padding-top: 3%;
+            font-family: 楷体;
+        }
+
+        .writing_v {
+            /* writing-mode: tb-rl; */
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            font-family: 楷体;
+            color: #5a0606e5;
+        }
+
+
+
+        .search_result_init_total {
+            display: flex;
+            align-items: start;
+            justify-content: center;
+            color: white;
+            width: 99%;
+            height: 99%;
+            margin: auto;
+            flex-direction: column;
+
+
+
+        }
+
+        .search_result_init_top {
+            font-size: 20px;
+            font-family: 楷体;
+            position: relative;
+            padding-left: 5%;
+            padding-top: 3%;
+            background: linear-gradient(to bottom, transparent 65%, rgb(188, 0, 2) 50%);
+            display: inline-block;
+            padding: inherit;
+            margin-left: 5%;
+            margin-top: 3%;
+        }
+
+        .search_result_init_content {
+            display: flex;
+            align-items: start;
+            justify-content: start;
+            flex-direction: column;
+            font-size: 15px;
+            width: 100%;
+            height: 95%;
+            padding-left: 3%;
+            padding-top: 3%;
+
+        }
+    </style>
+    <script src="https://api.map.baidu.com/getscript?type=webgl&v=1.0&ak=mIbwTot97IjAf6r6pGDKQ2F83DKGCX3f"></script>
+</head>
+
+<body onload='init()' class="father" background="img/bg1.png"
+    style="height:100%;width:100%;background-size:100% 105%;background-attachment:fixed;">
+
+    <!-- 加载指示器的遮罩层 -->
+    <div id="loading-overlay" style="display: none;height: 99%;width: 99%;margin: auto;" class="child_center">
+        <div id="loading-indicator" style="display: none;"></div>
+    </div>
+
+
+    <div id="title" class="title ">
+        <!-- <div style="width: 25%;height: 100%;font-size:20px;justify-content: left;margin-left:5px;" class="logo"><a
+                    style="font-size: 22px;">互联网+</a>：
+                “青年红色筑梦之旅”</div>
+            <img src="img/title.png" alt="left" class="title_img">
+            <div style="width: 35%;height: 100%;font-size:20px;justify-content: right;margin-right:5px;" class="logo">
+                武汉大学哲学学院 | 计算机学院</div> -->
+    </div>
+
+    <div class="mainBody">
+        <div id="left_col" class="left">
+            <div class="search_left_up">
+                <!-- -->
+                <div class="search_label_left child_center">
+
+                    <input onkeydown="if(event.keyCode==13) {search_content()}" placeholder="西柏坡"
+                        style="padding-left: 3%;width:90%; height:90%; color:rgb(207, 155, 155); font-size:medium;background-color: rgb(103, 0, 1);border: 2px solid rgb(189, 2, 4);border-radius: 3px;"
+                        title="search" id="search">
+                    <div onclick="search_content()" class="child_center" style="color:white;  width:15%;height:90%;">
+                        <img src=".\icon\search.png" width="60%" height="auto">
+                    </div>
+                </div>
+
+                <div class="child_center" style="height: 75%;margin-left: 3%;">
+                    <div class="child_center"
+                        style="height:70%; width: 80% ; font-size: 15px;font-family: 楷体;color: rgb(255, 255, 255)">
+
+                        <div onclick="fillter_choose(this)" id="fillter_btn1" class="text_click_xuanku writing_v"
+                            style="pointer-events:none;">电报</div>
+                        <div style="width:3%;"> </div>
+                        <div onclick="fillter_choose(this)" id="fillter_btn2" class="text_click_xuanku writing_v"
+                            style="pointer-events:none;">其他</div>
+                        <div style="width:3%;"> </div>
+                        <div onclick="fillter_choose(this)" id="fillter_btn3" class="text_click_xuanku writing_v"
+                            style="pointer-events:none;">信件</div>
+                        <div style="width:3%;"> </div>
+                        <div onclick="fillter_choose(this)" id="fillter_btn5" class="text_click_xuanku writing_v"
+                            style="pointer-events:none;">讲话</div>
+                        <div style="width:3%;"> </div>
+                        <div onclick="fillter_choose(this)" id="fillter_btn6" class="text_click_xuanku writing_v"
+                            style="pointer-events:none;">诗歌</div>
+                        <div style="width:3%;"> </div>
+                        <div onclick="fillter_choose(this)" id="fillter_btn7" class="text_click_xuanku writing_v"
+                            style="pointer-events:none;">书籍</div>
+                    </div>
+                    <div class="child_center" style="height: 100%; width: 20%; font-size: 18px;font-family: 楷体; ">
+                        <div onclick="reflash_search_content()" class="text_click_xuanku"
+                            style="height: 50%;width: 65%; background-color: rgb(208, 9, 12);">重置</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="height: 2%;">
+            </div>
+
+
+            <div class="search_left_down" id="search_result" style="text-align: start;">
+                <!-- 2132 -->
+
+            </div>
+            <!-- <div class="search_result" id="search_result"> -->
+        </div>
+
+        <div id="container" class="map shadow"></div>
+
+        <div id="item" class="item-box" :style="z-index:2"></div>
+
+        <div id="right_col" class="right">
+            <div class="search">
+                <div class="search_label" id="detail_title">
+                    点击地图任意标识，了解当地事件发生详情
+                </div>
+                <div id="detail" class="detail"></div>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+
+</html>
+
+<script type="text/javascript">
+
+    function reflash_search_content() {
+        document.getElementById("search").value = ""
+        document.getElementById("search_result").innerHTML = ""
+        search_result_init()
+        var btn = document.getElementById("fillter_btn1")
+        btn.style.color = "color:rgb(105, 14, 14)"
+        btn.style.pointerEvents = "none"
+        var btn = document.getElementById("fillter_btn2")
+        btn.style.color = "color:rgb(105, 14, 14)"
+        btn.style.pointerEvents = "none"
+        var btn = document.getElementById("fillter_btn3")
+        btn.style.color = "color:rgb(105, 14, 14)"
+        btn.style.pointerEvents = "none"
+        //var btn = document.getElementById("fillter_btn4")
+        //btn.style.color = "#d3d3d3"
+        //btn.style.pointerEvents = "none"
+        var btn = document.getElementById("fillter_btn5")
+        btn.style.color = "color:rgb(105, 14, 14)"
+        btn.style.pointerEvents = "none"
+        var btn = document.getElementById("fillter_btn6")
+        btn.style.color = "color:rgb(105, 14, 14)"
+        btn.style.pointerEvents = "none"
+        var btn = document.getElementById("fillter_btn7")
+        btn.style.color = "color:rgb(105, 14, 14)"
+        btn.style.pointerEvents = "none"
+        //var btn = document.getElementById("fillter_btn")
+        //btn.style.color = "#d3d3d3"
+        //btn.style.pointerEvents = "none"
+    }
+</script>
+
+
+<script type="text/javascript">
+
+    function detail_info(e) {
+
+        position = json_data[e.getElementsByClassName('search_detail_address')[0].innerText]['position']
+        console.log(position)
+
+        // var map = document.getElementById("container")
+        // console.log(map)
+
+        // json_data[e.getElementsByClassName('search_detail_address')[0].innerText]['position']
+        // var map = new BMapGL.Map("container");
+        map.centerAndZoom(new BMapGL.Point(position[0], position[1]), 12);
+    }
+
+
+</script>
+
+
+<script type="text/javascript">
+
+    function search_result_init() {
+        var content_init = ""
+
+
+        content_init += '<div class="search_result_init_total"><div class="search_result_init_top child_center" style="justify-content: start;">推荐搜索</div><div class="search_result_init_content">'
+
+        // content_init += '<div style="margin-top:15px;margin-left:5px;">经典永流传。</div>'
+        // content_init += '<div style="margin-top:15px;margin-left:5px;">经典永流传。</div>'
+        // content_init += '<div style="margin-top:15px;margin-left:5px;">经典永流传。</div>'
+        // content_init += '<div style="margin-top:15px;margin-left:5px;">经典永流传。</div>'
+        // content_init += '<div style="margin-top:15px;margin-left:5px;">经典永流传。</div>'
+        // content_init += '<div style="margin-top:15px;margin-left:5px;">经典永流传。</div>'
+
+        content_init += '<div style="margin-top:20px;margin-left:5px;margin-right:5px;">世界上没有无缘无故的爱，也没有无缘无故的恨。</div>'
+        content_init += '<div style="margin-top:20px;margin-left:5px;margin-right:5px;">一切反动派都是纸老虎。</div>'
+        content_init += '<div style="margin-top:20px;margin-left:5px;margin-right:5px;">不管黑猫白猫，抓到老鼠就是好猫。</div>'
+        content_init += '<div style="margin-top:20px;margin-left:5px;margin-right:5px;">革命不是请客吃饭。</div>'
+        content_init += '<div style="margin-top:20px;margin-left:5px;margin-right:5px;">理论谈得来，革命才能做得通。</div>'
+        content_init += '<div style="margin-top:20px;margin-left:5px;margin-right:5px;">一切反动派都是反动的。</div>'
+        content_init += '<div style="margin-top:20px;margin-left:5px;margin-right:5px;">一切走资派都是走资本主义道路的当权派。</div>'
+        content_init += '<div style="margin-top:20px;margin-left:5px;margin-right:5px;">军队是党的一支伟大的战斗队伍。</div>'
+        content_init += '<div style="margin-top:20px;margin-left:5px;margin-right:5px;">只有自己的力量才能战胜一切。</div>'
+        content_init += '<div style="margin-top:20px;margin-left:5px;margin-right:5px;">没有调查，就没有发言权。</div>'
+        content_init += '<div style="margin-top:20px;margin-left:5px;margin-right:5px;">枪杆子里面出政权。</div>'
+        content_init += '<div style="margin-top:20px;margin-left:5px;margin-right:5px;">红军不怕远征难，万水千山只等闲。</div>'
+        content_init += '<div style="margin-top:20px;margin-left:5px;margin-right:5px;">人民军队的根本任务，是保卫人民群众的政权。</div>'
+
+
+        content_init += '</div></div>'
+        document.getElementById("search_result").innerHTML = content_init;
+
+
+    }
+
+</script>
+
+<script type="text/javascript">
+
+    function search_content() {
+        // document.getElementById('loading-overlay').style.display = 'block';
+        // document.getElementById('loading-indicator').style.display = 'block';
+
+        // setTimeout(function () {
+        //     // 隐藏加载指示器遮罩层
+        //     document.getElementById('loading-overlay').style.display = 'none';
+        //     document.getElementById('loading-indicator').style.display = 'none';
+        // }, 2000); // 模拟2秒的加载时间
+
+        function fillter() {
+
+            var btn = document.getElementById("fillter_btn1")
+            btn.style.pointerEvents = "auto"
+            var btn = document.getElementById("fillter_btn2")
+            btn.style.pointerEvents = "auto"
+            var btn = document.getElementById("fillter_btn3")
+            btn.style.pointerEvents = "auto"
+            //var btn = document.getElementById("fillter_btn4")
+            //btn.style.pointerEvents = "auto"
+            var btn = document.getElementById("fillter_btn5")
+            btn.style.pointerEvents = "auto"
+            var btn = document.getElementById("fillter_btn6")
+            btn.style.pointerEvents = "auto"
+            var btn = document.getElementById("fillter_btn7")
+            btn.style.pointerEvents = "auto"
+        }
+
+        aim = document.getElementById("search").value
+        console.log(aim)
+
+        content = []
+        address = []
+        time = []
+
+        json_data = json_data_
+
+        if (aim == '') {
+            //alert('无内容')
+        } else {
+
+            for (var item in json_data) {
+                if (item.includes(aim)) {
+                    address.push([item, json_data[item]])
+                }
+
+                for (var item_event_key in json_data[item]['event']) {
+                    //console.log("item_event:", item, json_data[item]['event'][item_event_key])
+                    if (json_data[item]['event'][item_event_key]['text'].includes(aim)) {
+                        content.push([item, json_data[item]['event'][item_event_key]])
+                    }
+
+                    if (json_data[item]['event'][item_event_key]['date'].includes(aim)) {
+                        time.push([item, json_data[item]['event'][item_event_key]])
+                    }
+                }
+
+            }
+
+
+        }
+
+
+
+
+
+        context = ''
+        if (content.length > 0) {
+            context += '<div class="detail_left">'
+            context += '<div class="fillter">在具体事件中出现记录 ' + content.length + '个</div>'
+
+            for (var i = 0; i < content.length; i++) {
+                var temp1 = content[i][1]['date']
+                var temp2 = content[i][1]['type']
+                var temp3 = content[i][1]['text']
+                var temp4 = content[i][0]
+                var s = aim.toString();
+                var reg = new RegExp("(" + s + ")", "g")
+                temp1 = temp1.replace(reg, "<font color=red>$1</font>")
+                temp2 = temp2.replace(reg, "<font color=red>$1</font>")
+                temp3 = temp3.replace(reg, "<font color=red>$1</font>")
+
+                context += '<div class="p-class" id="search_result_item_event' + i.toString() + '" onclick=detail_info(this)> <div class="detail_title"> <a class="search_detail_date">'
+                    + temp1 + '</a>'
+                    + '<a class="search_detail_address">' + temp4 + '</a> '
+                    + '<a class="search_detail_type">' + temp2 + '</a> ' + '</div> '
+                    + '<a  class="detail_text">' + temp3 + '</a>'
+                    + '</div>'
+
+
+
+            }
+
+            context += '</div>'
+
+            document.getElementById("search_result").innerHTML = context
+            //var btn = document.getElementById("fillter_btn")
+            //btn.style.color = "rgb(105, 14, 14)"
+            //btn.style.pointerEvents = "auto"
+            fillter()
+        } else {
+            context += '<div class="fillter">在具体事件中出现记录 0个</div>'
+            document.getElementById("search_result").innerHTML = context
+        }
+
+
+
+        if (time.length > 0) {
+            context += '<div class="detail_left">'
+            context += '<div class="fillter">在时间中出现记录 ' + time.length + '个</div>'
+
+
+            for (var i = 0; i < time.length; i++) {
+                var temp1 = time[i][1]['date']
+                var temp2 = time[i][1]['type']
+                var temp3 = time[i][1]['text']
+                var temp4 = time[i][0]
+                console.log("temp4:", temp4)
+                var s = aim.toString();
+                var reg = new RegExp("(" + s + ")", "g")
+                temp1 = temp1.replace(reg, "<font color=red>$1</font>")
+                temp2 = temp2.replace(reg, "<font color=red>$1</font>")
+                temp3 = temp3.replace(reg, "<font color=red>$1</font>")
+
+                context += '<div class="p-class" id="search_result_item_time' + i.toString() + '" onclick=detail_info(this)> <div class="detail_title"> <a class="search_detail_date">'
+                    + temp1 + '</a>'
+                    + '<a class="search_detail_address">' + temp4 + '</a> '
+                    + '<a class="search_detail_type">' + temp2 + '</a> ' + '</div> '
+                    + '<a  class="detail_text">' + temp3 + '</a>'
+                    + '</div>'
+
+
+            }
+
+            context += '</div>'
+
+            document.getElementById("search_result").innerHTML = context;
+            //var btn = document.getElementById("fillter_btn")
+            //btn.style.color = "rgb(105, 14, 14)"
+            //btn.style.pointerEvents = "auto"
+            fillter()
+        } else {
+            context += '<div class="fillter">在时间中出现记录 0个</div>'
+            document.getElementById("search_result").innerHTML = context
+        }
+
+
+
+        return content, address, time;
+        // 搜索与关键字相关的  内容，地点，时间
+
+    }
+</script>
+
+<script type="text/javascript">
+
+    function fillter_choose(e) {
+
+        content, address, time = search_content()
+        //console.log(content, address, time)
+
+
+        //把其他fillter变灰，把当前变正常
+
+        //console.log(e)
+        document.getElementById('fillter_btn1').style['text-decoration'] = 'none'
+        document.getElementById('fillter_btn2').style['text-decoration'] = 'none'
+        document.getElementById('fillter_btn3').style['text-decoration'] = 'none'
+        document.getElementById('fillter_btn5').style['text-decoration'] = 'none'
+        document.getElementById('fillter_btn6').style['text-decoration'] = 'none'
+        document.getElementById('fillter_btn7').style['text-decoration'] = 'none'
+
+        document.getElementById(e.id).style['text-decoration'] = 'underline'
+
+
+
+
+        //___________________
+
+        const node_list = document.getElementById('search_result').childNodes[0].childNodes
+        //console.log(document.getElementById('search_result'))
+        const length_list = node_list.length
+        remove_lsit = []
+        for (var i = length_list - 1; i > 0; i--) {
+
+            if (document.getElementById(node_list[i].id).childNodes[1].innerText.includes(e.innerText) == false) {
+                const box_rm = document.getElementById(node_list[i].id)
+                box_rm.parentNode.removeChild(box_rm);
+            }
+        }
+
+        const node = document.getElementById('search_result')
+        //console.log(node.childNodes[0].childNodes[0].innerText.split(" "))
+
+        cur_node_len = document.getElementById('search_result').childNodes[0].childNodes.length - 1
+        if (cur_node_len > 0) {
+            node.childNodes[0].childNodes[0].innerText = node.childNodes[0].childNodes[0].innerText.split(" ")[0] + " " + cur_node_len.toString() + "个"
+        } else {
+            node.childNodes[0].childNodes[0].innerText = node.childNodes[0].childNodes[0].innerText.split(" ")[0] + " 0个"
+        }
+
+
+        //___________________
+
+        if (document.getElementById('search_result').length > 1) {
+
+            const node_list_ = document.getElementById('search_result').childNodes[1].childNodes
+
+            //console.log(document.getElementById('search_result'))
+            const length_list_ = node_list_.length
+            remove_lsit = []
+            for (var i = length_list_ - 1; i > 0; i--) {
+
+                if (document.getElementById(node_list_[i].id).childNodes[1].innerText.includes(e.innerText) == false) {
+                    const box_rm = document.getElementById(node_list_[i].id)
+                    box_rm.parentNode.removeChild(box_rm);
+                }
+            }
+
+            const node_ = document.getElementById('search_result')
+            //console.log(node.childNodes[0].childNodes[0].innerText.split(" "))
+
+            cur_node_len = document.getElementById('search_result').childNodes[1].childNodes.length - 1
+            if (cur_node_len > 0) {
+                node_.childNodes[1].childNodes[0].innerText = node_.childNodes[1].childNodes[0].innerText.split(" ")[0] + " " + cur_node_len.toString() + "个"
+            } else {
+                node_.childNodes[1].childNodes[0].innerText = node_.childNodes[1].childNodes[0].innerText.split(" ")[0] + " 0个"
+            }
+        }
+
+    }
+
+
+</script>
+
+<script type='text/javascript' src='data_time_sorted_result.js'></script>
+
+<script type="text/javascript">
+    var map;
+
+    function init() {
+
+        search_result_init()
+
+
+        map = new BMapGL.Map('container');
+        var point = new BMapGL.Point(116.404, 39.915);
+        map.centerAndZoom(point, 5);
+        map.enableScrollWheelZoom(true);     //开启鼠标滚轮缩放
+        map.setMapStyleV2({
+            styleId: '3cd1267382b24063732a9dd5a33da2b6'
+        });
+        map.setMapType(BMAP_NORMAL_MAP);
+        //console.log("zoom:", map.getZoom())
+        need_show_class = address_name_class[5]
+        //console.log("need_show_class:", need_show_class)
+        json_data = json_data_
+        console.log(address_name_class['5'])
+        for (var item in json_data) {
+
+            //if (need_show_class.includes(item)) {
+            if (address_name_class['5'].includes(item) || address_name_class['6'].includes(item)) {
+                <!-- console.log("item:", item, need_show_class) -->
+            } else {
+                continue
+            }
+
+            // if (item.length)
+
+            //console.log("item:", item, json_data[item])
+            point_detail = json_data[item]['position']
+            point_name = item
+            point_content = json_data[item]['event']
+
+
+            var point = new BMapGL.Point(point_detail[0], point_detail[1]);
+
+            icon_type_path = ""
+
+            icon_type_path = "./icon/fire.png"
+            var myIcon = new BMapGL.Icon(icon_type_path, new BMapGL.Size(30, 30));
+
+
+            // 创建Marker标注
+            var pt = new BMapGL.Point(point_detail[0], point_detail[1]);
+            var marker = new BMapGL.Marker(pt, {
+                icon: myIcon
+            });
+
+            address = point_name
+            //13 -91 
+            //8  -56
+            //4  -28
+            //3  -21
+            //2  -14
+
+            // 编写自定义函数,创建标签
+            var label = new BMapGL.Label(address, {
+                offset: new BMapGL.Size(-7 * (address.length), +20),
+            });
+
+            label.setStyle({
+                color: "#a80e0e",
+                fontSize: "9px",
+                backgroundColor: "#c0151d10",
+                border: "0",
+                fontWeight: "bold",
+                borderRadius: "3px",
+                padding: 'auto',
+                width: "auto",
+                display: "-webkit-box",
+                overflow: "hidden",
+            });
+            //console.log("label",label)
+            marker.setLabel(label);
+            map.addOverlay(marker);              // 将标注添加到地图中
+
+
+
+            marker.addEventListener("click", function (e) {
+                lat = e.target.latLng.lat
+                lng = e.target.latLng.lng
+
+
+
+
+
+                for (var item in json_data) {
+
+                    // console.log(item, json_data[item][0] - lng, json_data[item][1] - lat)
+                    // console.log((Math.abs(json_data[item][0] - lng) < 0.001), (Math.abs(json_data[item][1] - lat) < 0.001))
+                    if ((Math.abs(json_data[item]['position'][0] - lng) < 0.000001) && (Math.abs(json_data[item]['position'][1] - lat) < 0.000001)) {
+
+                        console.log("click this point:", item)
+                        bingo_point_detail = json_data[item]
+
+                        point_detail = json_data[item]['position']
+
+                        document.getElementById("detail_title").innerText = item + "地区事件详情(" + json_data[item]['event'].length.toString() + "个)"
+
+                        point_content = json_data[item]['event']
+
+                        //console.log("point_content:", point_content)
+                        context = '<div class="detail_right">'
+
+                        for (var i = 0; i < point_content.length; i++) {
+                            context += '<div class="p-class"> <div class="detail_title"> <a class="detail_date">'
+                                + point_content[i]['date'] + '</a>'
+                                + '<a class="detail_type">' + point_content[i]['type'] + '</a> </div> '
+                                + '<a  class="detail_text">' + point_content[i]['text'] + '</a>'
+                                + '</div>'
+                        }
+
+                        context += '</div'
+
+                        document.getElementById("detail").innerHTML = context;
+                    }
+
+                }
+
+
+
+
+
+            });
+
+        }
+
+        map.addEventListener("zoomend", function (e) {
+
+            map.clearOverlays();//清空地图上标注点
+
+
+
+            let zoom = map.getZoom(); // 获取缩放级别
+            // 其余操作
+            //console.log(zoom, map)
+            //console.log("zoom:", map.getZoom())
+            //console.log(parseInt(map.getZoom()))
+            need_show_class = parseInt(map.getZoom())
+
+            need_show_city = ""
+            if (need_show_class <= 6) {
+                need_show_city = address_name_class[5].concat(address_name_class[6])
+            } else if (need_show_class == 7) {
+                //console.log("NOWWWW")
+                need_show_city = address_name_class[5].concat(address_name_class[6])
+            } else if (need_show_class == 8) {
+                need_show_city = address_name_class[5].concat(address_name_class[6])
+            } else if (need_show_class >= 9) {
+                need_show_city = "ALL"
+            }
+            //need_show_city = "ALL"
+            //console.log("need_show_class:", need_show_city)
+
+            json_data = json_data_
+
+            for (var item in json_data) {
+                show_flag = false
+                if (need_show_city == "ALL") {
+                    show_flag = true
+                } else {
+                    for (var need_show_city_item in need_show_city) {
+
+                        if (item.includes(need_show_city[need_show_city_item])) {
+                            //console.log("ZOOM___item_show:", item)
+                            if (need_show_class >= 9) {
+                                show_flag = true
+                                break
+                            } else if (need_show_class >= 7 && item.length >= 5) {
+                                show_flag = true
+                                break
+                            } else {
+                                if (item.length >= 3) {
+                                    continue
+                                } else {
+                                    show_flag = true
+                                    break
+                                }
+                            }
+
+
+                        } else {
+                            //console.log("ZOOM_item:", need_show_city[need_show_city_item],item)
+                        }
+                    }
+                }
+
+
+                if (show_flag == false) {
+                    continue
+                } else {
+                    point_detail = json_data[item]['position']
+                    point_name = item
+                    point_content = json_data[item]['event']
+
+
+                    var point = new BMapGL.Point(point_detail[0], point_detail[1]);
+
+                    icon_type_path = ""
+
+                    icon_type_path = "./icon/fire.png"
+                    var myIcon = new BMapGL.Icon(icon_type_path, new BMapGL.Size(30, 30));
+
+
+                    // 创建Marker标注
+                    var pt = new BMapGL.Point(point_detail[0], point_detail[1]);
+                    var marker = new BMapGL.Marker(pt, {
+                        icon: myIcon
+                    });
+
+                    address = point_name
+                    //13 -91 
+                    //8  -56
+                    //4  -28
+                    //3  -21
+                    //2  -14
+
+                    // 编写自定义函数,创建标签
+                    var label = new BMapGL.Label(address, {
+                        offset: new BMapGL.Size(-7 * (address.length), +20),
+                    });
+
+
+
+                    fontsize_zoom = Math.round(2 / 3 * zoom + 7).toString() + 'px'
+                    <!-- console.log(zoom, fontsize_zoom) -->
+
+                    label.setStyle({
+                        color: "#a80e0e",
+                        fontSize: fontsize_zoom,
+                        backgroundColor: "#c0151d10",
+                        border: "0",
+                        fontWeight: "bold",
+                        borderRadius: "3px",
+                        padding: 'auto',
+                        width: "auto",
+                        display: "-webkit-box",
+                        overflow: "hidden",
+                    });
+                    //console.log("label",label)
+                    marker.setLabel(label);
+                    map.addOverlay(marker);              // 将标注添加到地图中
+
+
+
+                    marker.addEventListener("click", function (e) {
+                        lat = e.target.latLng.lat
+                        lng = e.target.latLng.lng
+
+
+
+
+
+                        for (var item in json_data) {
+
+                            // console.log(item, json_data[item][0] - lng, json_data[item][1] - lat)
+                            // console.log((Math.abs(json_data[item][0] - lng) < 0.001), (Math.abs(json_data[item][1] - lat) < 0.001))
+                            if ((Math.abs(json_data[item]['position'][0] - lng) < 0.000001) && (Math.abs(json_data[item]['position'][1] - lat) < 0.000001)) {
+
+                                //console.log("click this point:", item)
+                                bingo_point_detail = json_data[item]
+
+                                point_detail = json_data[item]['position']
+
+                                document.getElementById("detail_title").innerText = item + "地区事件详情"
+
+                                point_content = json_data[item]['event']
+
+                                //console.log("point_content:", point_content)
+                                context = '<div class="detail_right">'
+
+                                for (var i = 0; i < point_content.length; i++) {
+                                    context += '<div class="p-class"> <div class="detail_title"> <a class="detail_date">'
+                                        + point_content[i]['date'] + '</a>'
+                                        + '<a class="detail_type">' + point_content[i]['type'] + '</a> </div> '
+                                        + '<a  class="detail_text">' + point_content[i]['text'] + '</a>'
+                                        + '</div>'
+                                }
+
+                                context += '</div'
+
+                                document.getElementById("detail").innerHTML = context;
+                            }
+
+                        }
+
+
+
+
+
+                    });
+                }
+            }
+        });
+
+
+    }
+
+
+
+
+</script>
